@@ -1,0 +1,6 @@
+# Binarios
+*.xlsm
+*.pdf
+
+# Directorios de datos
+DIOT2025_CargaMasiva_v1.2/xml/
