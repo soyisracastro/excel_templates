@@ -22,9 +22,56 @@ Sub CargarXMLs()
     folderPath = SeleccionarCarpeta()
     If folderPath = "" Then Exit Sub
     
-    Set dicConsolidado = CreateObject("Scripting.Dictionary")
+    ' Normalizar ruta (limpiar espacios y barras finales)
+    folderPath = Trim(folderPath)
+    If Right(folderPath, 1) = "\" Then folderPath = Left(folderPath, Len(folderPath) - 1)
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Validación robusta: Intentar con Dir (VBA Nativo) y FSO (Windows Scripting)
+    Dim carpetaExiste As Boolean
+    On Error Resume Next
+    carpetaExiste = (Dir(folderPath, vbDirectory) <> "") Or fso.FolderExists(folderPath)
+    On Error GoTo 0
+    
+    If Not carpetaExiste Then
+        Dim msg As String
+        msg = "Error 76: No se pudo encontrar la ruta." & vbCrLf & vbCrLf
+        msg = msg & "Ruta detectada: " & folderPath & vbCrLf & vbCrLf
+        
+        If InStr(1, folderPath, "https://") > 0 Or InStr(1, folderPath, "sharepoint") > 0 Then
+            msg = msg & "ADVERTENCIA: Estás intentando usar una ruta web de OneDrive/SharePoint." & vbCrLf
+            msg = msg & "Sugerencia: Abre la carpeta en tu explorador de archivos, copia la ruta real del disco local y asegúrate de que los archivos estén 'Disponibles siempre en este dispositivo'."
+        Else
+            msg = msg & "Sugerencia: Verifique que la carpeta no sea un acceso directo o una unidad de red desconectada."
+        End If
+        
+        MsgBox msg, vbCritical, "Fallo al acceder a la carpeta"
+        Exit Sub
+    End If
+    
+    Set dicConsolidado = CreateObject("Scripting.Dictionary")
+    
+    ' Intentar acceder a la carpeta con manejo de errores
+    On Error Resume Next
     Set carpeta = fso.GetFolder(folderPath)
+    If Err.Number <> 0 Then
+        Dim errorNum As Long, errorDesc As String
+        errorNum = Err.Number
+        errorDesc = Err.Description
+        On Error GoTo 0
+        
+        MsgBox "Error " & errorNum & " al acceder a la carpeta:" & vbCrLf & vbCrLf & _
+               "Ruta: " & folderPath & vbCrLf & _
+               "Descripción: " & errorDesc & vbCrLf & vbCrLf & _
+               "SOLUCIÓN: Los archivos de OneDrive pueden estar 'solo en la nube'." & vbCrLf & _
+               "1. Abre la carpeta 'xml' en el Explorador de Windows" & vbCrLf & _
+               "2. Clic derecho > 'Mantener siempre en este dispositivo'" & vbCrLf & _
+               "3. Espera a que se descarguen los archivos e intenta de nuevo.", _
+               vbCritical, "Error de acceso a carpeta OneDrive"
+        Exit Sub
+    End If
+    On Error GoTo 0
     
     ' Mostrar barra de estado
     Application.StatusBar = "Procesando XMLs..."
@@ -97,7 +144,8 @@ End Sub
 
 Function SeleccionarCarpeta() As String
     Dim fd As Object
-    Set fd = Application.FileDialog(3) ' msoFileDialogFolderPicker
+    Set fd = Application.FileDialog(4) ' msoFileDialogFolderPicker = 4 (NO es 3)
+    fd.Title = "Selecciona la carpeta que contiene los archivos XML"
     If fd.Show = -1 Then
         SeleccionarCarpeta = fd.SelectedItems(1)
     Else

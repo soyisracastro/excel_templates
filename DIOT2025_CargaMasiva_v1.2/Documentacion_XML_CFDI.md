@@ -50,6 +50,25 @@ Al terminar el proceso (aparecerá un mensaje de "Proceso completado"), se crear
 
 ---
 
+## 🛠️ Solución de Problemas Comunes
+
+### Error 76: "Ruta no encontrada"
+
+Este error suele ocurrir por dos razones principales:
+
+1.  **Archivos en OneDrive (Falta de Sincronización Local)**:
+    Si tus archivos están sincronizados con la nube (OneDrive o SharePoint), es posible que Windows no permita que la macro los lea si están en modo "Solo en línea".
+    - **Solución**: Abre la carpeta `xml` en tu Explorador de Archivos, haz clic derecho sobre ella y selecciona **"Mantener siempre en este dispositivo"**. Espera a que aparezca el icono de la palomita verde antes de intentar de nuevo.
+
+2.  **Rutas Web (URL)**:
+    A veces, al navegar por "Acceso Rápido", Excel detecta una ruta que empieza con `https://`.
+    - **Solución**: Asegúrate de seleccionar la carpeta navegando a través de **"Este Equipo" > "Disco Local (C:)" > "Usuarios" > ...** para garantizar una ruta física real.
+
+3.  **Selección de Archivos en lugar de Carpetas**:
+    La macro requiere que selecciones la **carpeta contenedora**, no un archivo individual dentro de ella.
+
+---
+
 ## ⚠️ Notas Técnicas y Recomendaciones
 
 - **Consolidación**: Si un proveedor tiene 10 facturas en la misma carpeta, verás una sola fila con la suma de las 10, lo cual es ideal para la captura en el portal del SAT.

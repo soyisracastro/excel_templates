@@ -29,6 +29,10 @@ Todos los cambios notables realizados en el proyecto para la gestión de carga m
 
 ### 🛠️ Correcciones y Mejoras Técnicas
 
+- **Error 76 (Path Not Found)**:
+  - Se corrigió un error crítico donde se usaba `msoFileDialogFilePicker` (3) en lugar de `msoFileDialogFolderPicker` (4), lo que causaba que el sistema intentara procesar un archivo XML como si fuera una carpeta.
+  - Implementación de **Manejo de Errores para OneDrive**: El código ahora detecta y notifica cuando una carpeta está "solo en la nube", sugiriendo al usuario la opción de "Mantener siempre en este dispositivo".
+  - **Normalización de Rutas**: Limpieza automática de barras finales (`\`) que causaban fallos en la detección de directorios.
 - **Gestión de Archivos**: Se añadió limpieza automática de caracteres especiales (`\ / : * ? " < > |`) en los nombres de los archivos generados.
 - **Manejo de Errores**: Se implementó una verificación de archivo abierto para evitar errores de ejecución cuando el archivo `.txt` de destino está siendo usado por otro programa.
 - **UTF-8 con BOM**: Asegurada la codificación correcta para que el portal del SAT reconozca caracteres especiales (acentos y letra Ñ).
