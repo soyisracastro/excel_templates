@@ -24,7 +24,40 @@ Sub ExportarDIOT()
         nombreHoja = Replace(nombreHoja, c, "_")
     Next c
 
-    rutaArchivo = ThisWorkbook.Path & "\DIOT_" & nombreHoja & "_CargaMasiva.txt"
+    Dim rutaBase As String
+    rutaBase = ThisWorkbook.Path
+
+    ' Convertir URL de OneDrive a ruta local
+    If Left(rutaBase, 5) = "https" Then
+        Dim oneDriveLocal As String
+        oneDriveLocal = Environ("OneDrive")
+        If oneDriveLocal = "" Then oneDriveLocal = Environ("OneDriveCommercial")
+        If oneDriveLocal = "" Then oneDriveLocal = Environ("OneDriveConsumer")
+
+        ' Extraer la parte relativa de la URL después del ID del usuario
+        Dim partes() As String
+        partes = Split(rutaBase, "/")
+        ' La ruta relativa comienza después del 4to segmento (https://d.docs.live.net/ID/...)
+        Dim i As Long, rutaRelativa As String
+        rutaRelativa = ""
+        For i = 4 To UBound(partes)
+            If rutaRelativa <> "" Then rutaRelativa = rutaRelativa & "\"
+            rutaRelativa = rutaRelativa & partes(i)
+        Next i
+
+        ' Decodificar %20 y otros caracteres URL
+        rutaRelativa = Replace(rutaRelativa, "%20", " ")
+        rutaRelativa = Replace(rutaRelativa, "%C3%A1", "á")
+        rutaRelativa = Replace(rutaRelativa, "%C3%A9", "é")
+        rutaRelativa = Replace(rutaRelativa, "%C3%AD", "í")
+        rutaRelativa = Replace(rutaRelativa, "%C3%B3", "ó")
+        rutaRelativa = Replace(rutaRelativa, "%C3%BA", "ú")
+        rutaRelativa = Replace(rutaRelativa, "%C3%B1", "ñ")
+
+        rutaBase = oneDriveLocal & "\" & rutaRelativa
+    End If
+
+    rutaArchivo = rutaBase & "\DIOT_" & nombreHoja & "_CargaMasiva.txt"
 
     ' Verificar si el archivo está abierto
     If Dir(rutaArchivo) <> "" Then
