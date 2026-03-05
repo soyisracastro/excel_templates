@@ -14,23 +14,24 @@ Private Const FILA_ENCABEZADOS As Long = 4
 Private Const FILA_INICIO_DATOS As Long = 5
 
 ' Columnas de Datos_Proveedores
-Private Const COL_RFC As Long = 1        ' A
-Private Const COL_NOMBRE As Long = 2     ' B
-Private Const COL_UUID As Long = 3       ' C
-Private Const COL_FECHA As Long = 4      ' D
-Private Const COL_FOLIO As Long = 5      ' E
-Private Const COL_TIPO As Long = 6       ' F
-Private Const COL_METODO As Long = 7     ' G
-Private Const COL_GRAV16 As Long = 8     ' H
-Private Const COL_GRAV8 As Long = 9      ' I
-Private Const COL_TASA0 As Long = 10     ' J
-Private Const COL_EXENTO As Long = 11    ' K
-Private Const COL_DESCUENTO As Long = 12 ' L
-Private Const COL_IVA16 As Long = 13     ' M
-Private Const COL_IVA8 As Long = 14      ' N
-Private Const COL_IVARET As Long = 15    ' O
-Private Const COL_TOTAL As Long = 16     ' P
-Private Const ULTIMA_COL As Long = 16
+Private Const COL_FECHA As Long = 1      ' A
+Private Const COL_SERIE As Long = 2      ' B
+Private Const COL_FOLIO As Long = 3      ' C
+Private Const COL_TIPO As Long = 4       ' D
+Private Const COL_RFC As Long = 5        ' E
+Private Const COL_NOMBRE As Long = 6     ' F
+Private Const COL_GRAV16 As Long = 7     ' G
+Private Const COL_GRAV8 As Long = 8      ' H
+Private Const COL_TASA0 As Long = 9      ' I
+Private Const COL_EXENTO As Long = 10    ' J
+Private Const COL_DESCUENTO As Long = 11 ' K
+Private Const COL_IVA16 As Long = 12     ' L
+Private Const COL_IVA8 As Long = 13      ' M
+Private Const COL_IVARET As Long = 14    ' N
+Private Const COL_TOTAL As Long = 15     ' O
+Private Const COL_UUID As Long = 16      ' P
+Private Const COL_METODO As Long = 17    ' Q
+Private Const ULTIMA_COL As Long = 17
 
 ' ============================================================
 ' MACRO 1: Cargar XMLs de Ingresos y Egresos
@@ -235,7 +236,8 @@ Sub CargarXMLProveedores()
                 .Cells(nextRow, COL_NOMBRE).Value = nombre
                 .Cells(nextRow, COL_UUID).Value = uuid
                 .Cells(nextRow, COL_FECHA).Value = fecha
-                .Cells(nextRow, COL_FOLIO).Value = Trim(serie & folio)
+                .Cells(nextRow, COL_SERIE).Value = serie
+                .Cells(nextRow, COL_FOLIO).Value = folio
                 .Cells(nextRow, COL_TIPO).Value = tipoComprobante
                 .Cells(nextRow, COL_METODO).Value = metodoPago
                 .Cells(nextRow, COL_GRAV16).Value = baseGrav16 * signo
@@ -405,29 +407,24 @@ SiguienteFilaConc:
         wsConcentrados.Cells(fila, 1).Value = key         ' RFC
         wsConcentrados.Cells(fila, 2).Value = datos(0)    ' Nombre
         wsConcentrados.Cells(fila, 3).Value = datos(1)    ' Num. Operaciones
-        wsConcentrados.Cells(fila, 4).Value = datos(2)    ' Grav 16%
-        wsConcentrados.Cells(fila, 5).Value = datos(3)    ' Grav 8%
-        wsConcentrados.Cells(fila, 6).Value = datos(4)    ' Tasa 0%
-        wsConcentrados.Cells(fila, 7).Value = datos(5)    ' Exentos
-        wsConcentrados.Cells(fila, 8).Value = datos(6)    ' Descuento
-        wsConcentrados.Cells(fila, 9).Value = datos(7)    ' IVA 16%
-        wsConcentrados.Cells(fila, 10).Value = datos(8)   ' IVA 8%
-        wsConcentrados.Cells(fila, 11).Value = datos(9)   ' IVA Ret
-        wsConcentrados.Cells(fila, 12).Value = datos(10)  ' Total
+        wsConcentrados.Cells(fila, 4).Value = CLng(datos(2))    ' Grav 16%
+        wsConcentrados.Cells(fila, 5).Value = CLng(datos(3))    ' Grav 8%
+        wsConcentrados.Cells(fila, 6).Value = CLng(datos(4))    ' Tasa 0%
+        wsConcentrados.Cells(fila, 7).Value = CLng(datos(5))    ' Exentos
+        wsConcentrados.Cells(fila, 8).Value = CLng(datos(6))    ' Descuento
+        wsConcentrados.Cells(fila, 9).Value = CLng(datos(7))    ' IVA 16%
+        wsConcentrados.Cells(fila, 10).Value = CLng(datos(8))   ' IVA 8%
+        wsConcentrados.Cells(fila, 11).Value = CLng(datos(9))   ' IVA Ret
+        wsConcentrados.Cells(fila, 12).Value = CLng(datos(10))  ' Total
         fila = fila + 1
     Next key
 
     ' 7. Formato
     wsConcentrados.Columns("A:L").AutoFit
+    wsConcentrados.Columns("B").ColumnWidth = 40
 
     If fila > 2 Then
-        wsConcentrados.Range("D2:L" & fila - 1).NumberFormat = "$#,##0.00"
-
-        With wsConcentrados.Range("A1:L" & fila - 1).Borders
-            .LineStyle = xlContinuous
-            .Weight = xlThin
-            .Color = RGB(200, 200, 200)
-        End With
+        wsConcentrados.Range("D2:L" & fila - 1).NumberFormat = "#,##0"
     End If
 
     Application.StatusBar = False

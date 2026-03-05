@@ -3,7 +3,14 @@
 *.pdf
 
 # Directorios de datos
-DIOT2025_CargaMasiva_v1.2/xml/
+DIOT2025_CargaMasiva/xml/
 
 # Archivos generados
 *.txt
+*.xlsx
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
