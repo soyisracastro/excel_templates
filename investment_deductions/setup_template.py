@@ -1,15 +1,14 @@
 """
 Generador de Plantilla: Deducción de Inversiones LISR
 =====================================================
-Crea un archivo Excel (.xlsx) con 6 hojas:
+Crea un archivo Excel (.xlsx) con 7 hojas:
+  - Instrucciones: Guía de uso paso a paso (generada por Python)
   - Catalogo: Porcentajes Art. 33, 34, 35 LISR
   - Inversiones: Hoja principal de cálculo
   - Resumen: Totales por categoría
   - Baja_Activos: Calculadora de ganancia/pérdida por enajenación
   - INPC: Índices Nacionales de Precios al Consumidor (1984-2025)
   - Config: Parámetros del ejercicio
-
-La hoja "Instrucciones" se genera por macro VBA (ModuloInstrucciones.bas).
 
 Uso:
     python setup_template.py
@@ -542,8 +541,17 @@ def create_inversiones_sheet(wb):
             f'=IF(OR(J{r}="",M{r}=""),"",ROUND(J{r}*M{r},2))'
         )
 
-        # Col O: Dep. Acumulada (input del usuario - de ejercicios anteriores)
-        # Se deja vacía para que el usuario la llene
+        # Col O: Dep. Acumulada = MOI Deducible × % × (meses en ejercicios anteriores) / 12
+        # Meses anteriores = desde mes siguiente a adquisición hasta dic del ejercicio anterior
+        # Limitado por vida útil total = ROUND(1/%*12, 0)
+        # Si adquirido en el ejercicio actual → 0
+        ws[f"O{r}"] = (
+            f'=IF(OR(D{r}="",F{r}="",H{r}=""),"",'
+            f"IF(YEAR(D{r})>=Ejercicio,0,"
+            f"MIN(F{r},"
+            f"ROUND(F{r}*H{r}*MIN(ROUND(1/H{r}*12,0),"
+            f"(Ejercicio-1-YEAR(D{r}))*12+(12-MONTH(D{r})))/12,2))))"
+        )
 
         # Col P: Saldo Pendiente de Deducir = MOI Deducible - Dep.Acum - Deducción Ejercicio
         ws[f"P{r}"] = (
@@ -739,6 +747,221 @@ def create_baja_activos_sheet(wb):
 
 
 # ==============================================================================
+# HOJA: INSTRUCCIONES
+# ==============================================================================
+# Colores específicos para la hoja de instrucciones
+_INS_DARK = "2C3E50"
+_INS_BLUE = "3498DB"
+_INS_GRAY = "646464"
+_INS_MUTED_GRAY = "7F8C8D"
+_INS_TABLE_BG = "F5F7F9"
+_INS_TABLE_BORDER = "BDC3C7"
+
+
+def _ins_write_header(ws, r, text):
+    """Write a section header."""
+    cell = ws.cell(row=r, column=2, value=text)
+    cell.font = Font(name=FONT_FAMILY, size=15, bold=True, color=_INS_DARK)
+    return r + 1
+
+
+def _ins_write_step(ws, r, numero, titulo):
+    """Write a step header."""
+    cell = ws.cell(row=r, column=2, value=f"Paso {numero}: {titulo}")
+    cell.font = Font(name=FONT_FAMILY, size=13, bold=True, color=_INS_BLUE)
+    return r + 1
+
+
+def _ins_write_text(ws, r, text):
+    """Write a paragraph of text."""
+    cell = ws.cell(row=r, column=2, value=text)
+    cell.font = Font(name=FONT_FAMILY, size=11, color=_INS_DARK)
+    return r + 1
+
+
+def _ins_write_bullet(ws, r, label, description):
+    """Write a bullet point with bold label and description."""
+    full = f"\u2022  {label} \u2014 {description}"
+    cell = ws.cell(row=r, column=2, value=full)
+    cell.font = Font(name=FONT_FAMILY, size=11, color=_INS_GRAY)
+    # openpyxl no soporta Characters (rich text parcial) en celdas normales,
+    # así que usamos el formato completo de la celda.
+    # La etiqueta se distingue visualmente por estar antes del guión largo.
+    return r + 1
+
+
+def _ins_write_note(ws, r, text):
+    """Write a note with asterisk."""
+    cell = ws.cell(row=r, column=2, value=f"  *  {text}")
+    cell.font = Font(name=FONT_FAMILY, size=10, color=_INS_MUTED_GRAY, italic=True)
+    return r + 1
+
+
+def _ins_write_table_row(ws, r, col1, col2):
+    """Write a table row."""
+    cell = ws.cell(row=r, column=2, value=f"{col1}    \u2192    {col2}")
+    cell.font = Font(name=FONT_FAMILY, size=11)
+    if r % 2 == 0:
+        cell.fill = PatternFill(start_color=_INS_TABLE_BG, end_color=_INS_TABLE_BG, fill_type="solid")
+    return r + 1
+
+
+def create_instrucciones_sheet(wb):
+    """Create the Instrucciones sheet with formatted content."""
+    ws = wb.create_sheet("Instrucciones")
+
+    # Configurar hoja
+    ws.column_dimensions["A"].width = 4
+    ws.column_dimensions["B"].width = 120
+    ws.sheet_properties.tabColor = _INS_BLUE
+
+    r = 2
+
+    # ===== TÍTULO PRINCIPAL =====
+    cell = ws.cell(row=r, column=2, value="Deducción de Inversiones LISR")
+    cell.font = Font(name=FONT_FAMILY, size=22, bold=True, color=_INS_DARK)
+    r += 1
+
+    cell = ws.cell(row=r, column=2, value="Plantilla de Cálculo Fiscal - Artículos 31 al 38")
+    cell.font = Font(name=FONT_FAMILY, size=13, color=_INS_MUTED_GRAY)
+    r += 2
+
+    # Línea separadora
+    ws.cell(row=r, column=2).border = Border(
+        bottom=Side(style="medium", color=_INS_BLUE))
+    r += 2
+
+    # ===== DESCRIPCIÓN =====
+    r = _ins_write_header(ws, r, "Descripción")
+    r = _ins_write_text(ws, r, "Esta plantilla calcula automáticamente la deducción fiscal de inversiones conforme a la LISR.")
+    r = _ins_write_text(ws, r, "Incluye: catálogo de porcentajes (Art. 33, 34 y 35), topes de automóviles (Art. 36),")
+    r = _ins_write_text(ws, r, "actualización por INPC, y calculadora de ganancia/pérdida por enajenación de activos.")
+    r += 1
+
+    # ===== HOJAS DEL LIBRO =====
+    r = _ins_write_header(ws, r, "Hojas del libro")
+    r = _ins_write_text(ws, r, "Este libro contiene las siguientes hojas de trabajo:")
+    r += 1
+
+    r = _ins_write_bullet(ws, r, "Instrucciones", "Esta hoja. Guía de uso paso a paso.")
+    r = _ins_write_bullet(ws, r, "Catálogo", "Porcentajes de deducción por tipo de bien (Art. 33, 34 y 35 LISR).")
+    r = _ins_write_bullet(ws, r, "Inversiones", "Hoja principal. Registra activos y calcula la deducción actualizada.")
+    r = _ins_write_bullet(ws, r, "Resumen", "Totales agrupados por tipo de bien (SUMIF automático).")
+    r = _ins_write_bullet(ws, r, "Baja_Activos", "Calculadora de ganancia o pérdida por venta de activos.")
+    r = _ins_write_bullet(ws, r, "INPC", "Índices Nacionales de Precios al Consumidor (1984-2025).")
+    r = _ins_write_bullet(ws, r, "Config", "Parámetros: ejercicio fiscal y topes de deducibilidad.")
+    r += 1
+
+    # ===== FLUJO DE TRABAJO =====
+    r = _ins_write_header(ws, r, "Flujo de trabajo")
+    r += 1
+
+    # Paso 1
+    r = _ins_write_step(ws, r, "1", "Configurar el ejercicio fiscal")
+    r = _ins_write_text(ws, r, 'Ve a la hoja "Config" y verifica que el campo "Ejercicio" tenga el año correcto.')
+    r = _ins_write_text(ws, r, "Este valor se usa en todas las fórmulas de la hoja Inversiones.")
+    r += 1
+
+    # Paso 2
+    r = _ins_write_step(ws, r, "2", "Registrar tus inversiones")
+    r = _ins_write_text(ws, r, 'En la hoja "Inversiones", llena las columnas de captura manual:')
+    r += 1
+    r = _ins_write_bullet(ws, r, "No.", "Número de control o cuenta contable.")
+    r = _ins_write_bullet(ws, r, "Concepto", 'Descripción del bien (ej: "Laptop Dell Latitude 5540").')
+    r = _ins_write_bullet(ws, r, "Fecha de Adquisición", "Fecha en que se adquirió el bien.")
+    r = _ins_write_bullet(ws, r, "M.O.I.", "Monto Original de la Inversión (precio + fletes + instalación, sin IVA).")
+    r = _ins_write_bullet(ws, r, "Tipo de Bien", "Selecciona del menú desplegable (catálogo Art. 33/34/35).")
+    r = _ins_write_bullet(ws, r, "Dep. Acumulada", "Columna O. Se calcula automáticamente (ver Paso 2b).")
+    r += 1
+    r = _ins_write_note(ws, r, "Las demás columnas se calculan automáticamente con fórmulas.")
+    r += 1
+
+    # Paso 2b
+    r = _ins_write_step(ws, r, "2b", "Sobre la columna Dep. Acumulada (col. O)")
+    r = _ins_write_text(ws, r, "Esta columna se CALCULA AUTOMÁTICAMENTE. Representa la suma de todas las deducciones")
+    r = _ins_write_text(ws, r, "fiscales de ejercicios anteriores, basándose en la fecha de adquisición, MOI y porcentaje.")
+    r += 1
+    r = _ins_write_text(ws, r, "La fórmula calcula: MOI Deducible × % × (meses en ejercicios anteriores) / 12.")
+    r = _ins_write_text(ws, r, "Para activos nuevos (adquiridos en el ejercicio actual), el resultado es cero.")
+    r += 1
+    r = _ins_write_note(ws, r, "Si tu depreciación real difiere (por porcentajes menores o ajustes), puedes sobreescribir la fórmula con el valor correcto.")
+    r = _ins_write_note(ws, r, "Puedes verificar este dato contra: balanza de comprobación, papeles de trabajo o declaración anual anterior.")
+    r += 1
+
+    # Paso 3
+    r = _ins_write_step(ws, r, "3", "Revisar cálculos automáticos")
+    r = _ins_write_text(ws, r, "Las siguientes columnas se calculan solas al llenar los datos:")
+    r += 1
+    r = _ins_write_bullet(ws, r, "MOI Deducible", "Aplica topes de automóviles automáticamente ($175K/$250K).")
+    r = _ins_write_bullet(ws, r, "% Deducción", "Se obtiene del catálogo según el tipo de bien seleccionado.")
+    r = _ins_write_bullet(ws, r, "Meses de Uso", "Meses completos de uso en el ejercicio.")
+    r = _ins_write_bullet(ws, r, "Deducción del Ejercicio", "= MOI Deducible x % x Meses/12.")
+    r = _ins_write_bullet(ws, r, "INPC / Factor", "Actualización por inflación (4 decimales, Art. 9 RLISR).")
+    r = _ins_write_bullet(ws, r, "Deducción Actualizada", "= Deducción x Factor de Actualización.")
+    r = _ins_write_bullet(ws, r, "Saldo Pendiente", "= MOI Deducible - Dep. Acumulada - Deducción del Ejercicio.")
+    r += 1
+
+    # Paso 4
+    r = _ins_write_step(ws, r, "4", "Consultar el resumen")
+    r = _ins_write_text(ws, r, 'La hoja "Resumen" muestra los totales por tipo de bien automáticamente.')
+    r = _ins_write_text(ws, r, "Útil para declaraciones anuales y reportes financieros.")
+    r += 1
+
+    # Paso 5
+    r = _ins_write_step(ws, r, "5", "Calcular bajas de activos (si aplica)")
+    r = _ins_write_text(ws, r, 'Si vendes o das de baja un activo, usa la hoja "Baja_Activos".')
+    r = _ins_write_text(ws, r, "Ingresa el MOI, deducciones acumuladas, INPCs y precio de venta.")
+    r = _ins_write_text(ws, r, "La hoja calcula si hay ganancia acumulable o pérdida deducible.")
+    r += 1
+
+    # ===== TOPES DE AUTOMÓVILES =====
+    r = _ins_write_header(ws, r, "Topes de automóviles (Art. 36 LISR)")
+    r += 1
+
+    tbl_top = r
+    cell = ws.cell(row=r, column=2, value="Tipo de vehículo    \u2192    Tope deducible")
+    cell.font = Font(name=FONT_FAMILY, bold=True, color="FFFFFF")
+    cell.fill = PatternFill(start_color=_INS_DARK, end_color=_INS_DARK, fill_type="solid")
+    r += 1
+
+    r = _ins_write_table_row(ws, r, "Combustión interna", "$175,000 MXN")
+    r = _ins_write_table_row(ws, r, "Eléctrico o híbrido", "$250,000 MXN")
+    r = _ins_write_table_row(ws, r, "Pick-up (camión de carga)", "Sin tope (100% deducible)")
+
+    # Bordes de la tabla
+    thin_side = Side(style="thin", color=_INS_TABLE_BORDER)
+    for tr in range(tbl_top, r):
+        ws.cell(row=tr, column=2).border = Border(
+            left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+    r += 1
+
+    r = _ins_write_note(ws, r, "Los topes se configuran en la hoja Config y se aplican automáticamente en la columna MOI Deducible.")
+    r = _ins_write_note(ws, r, "Las pick-up se clasifican como camiones de carga (Criterio 27/ISR/N) y no tienen tope.")
+    r += 1
+
+    # ===== NOTAS IMPORTANTES =====
+    r = _ins_write_header(ws, r, "Notas importantes")
+    r += 1
+    r = _ins_write_note(ws, r, "El IVA NO forma parte del MOI (es acreditable), salvo que no tengas derecho al acreditamiento.")
+    r = _ins_write_note(ws, r, "Si no deduces en el ejercicio de inicio de uso ni en el siguiente, pierdes esos montos de forma permanente.")
+    r = _ins_write_note(ws, r, "Puedes aplicar un porcentaje menor al máximo, pero queda fijo por 5 años (Art. 66 RLISR).")
+    r = _ins_write_note(ws, r, "El Factor de Actualización se calcula a 4 decimales conforme al Art. 9 del Reglamento de la LISR.")
+    r = _ins_write_note(ws, r, "La tabla INPC se puede actualizar manualmente agregando filas para años futuros.")
+    r = _ins_write_note(ws, r, "Para bienes de energía renovable (100%), el sistema debe operar al menos 5 años continuos.")
+    r += 2
+
+    # ===== PIE =====
+    cell = ws.cell(row=r, column=2, value="Versión 1.0 | Marzo 2026")
+    cell.font = Font(name=FONT_FAMILY, size=9, color=_INS_MUTED_GRAY, italic=True)
+
+    # Proteger hoja
+    ws.protection.sheet = True
+    ws.protection.enable()
+
+    return ws
+
+
+# ==============================================================================
 # MAIN
 # ==============================================================================
 def main():
@@ -752,6 +975,7 @@ def main():
         inpc_data = INPC_DATA
 
     # Create sheets in order
+    create_instrucciones_sheet(wb)
     create_config_sheet(wb)
     create_inpc_sheet(wb, inpc_data)
     create_catalogo_sheet(wb)
@@ -759,8 +983,8 @@ def main():
     create_resumen_sheet(wb)
     create_baja_activos_sheet(wb)
 
-    # Set Inversiones as active sheet
-    wb.active = wb.sheetnames.index("Inversiones")
+    # Set Instrucciones as active sheet (first thing the user sees)
+    wb.active = wb.sheetnames.index("Instrucciones")
 
     # Save
     wb.save(OUTPUT_FILE)
